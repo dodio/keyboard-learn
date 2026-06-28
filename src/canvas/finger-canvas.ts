@@ -154,17 +154,19 @@ export class FingerCanvas {
     const result: { baseX: number; baseY: number; tipX: number; tipY: number }[] = [];
 
     // 手指在掌心上的分布
-    const spread = handHalfWidth * 2 * 0.85; // 手指分布宽度
+    const spread = handHalfWidth * 2 * 1.05; // 手指分布宽度
 
     for (let i = 0; i < 5; i++) {
-      // 左手: ['L5','L4','L3','L2','L1'] → 拇指(i=4)
-      // 右手: ['R1','R2','R3','R4','R5'] → 拇指(i=0)
+      // 左手: ['L5','L4','L3','L2','L1'] → 拇指(i=4), 手指从左到右排列
+      // 右手: ['R1','R2','R3','R4','R5'] → 拇指(i=0), 手指从左到右排列
       const isThumb = side === 'left' ? i === 4 : i === 0;
 
-      // 手指 X 位置归一化
-      const normalizedPositions = [-0.95, -0.60, -0.15, 0.35, 0.85];
+      // 左右镜像对称的手指 X 位置归一化
+      const leftPositions  = [-0.85, -0.35,  0.10,  0.55,  0.95]; // L5 L4 L3 L2 L1
+      const rightPositions = [-0.95, -0.55, -0.10,  0.35,  0.85]; // R1 R2 R3 R4 R5
+      const positions = side === 'left' ? leftPositions : rightPositions;
 
-      const t = normalizedPositions[i];
+      const t = positions[i];
       const baseX = cx + t * spread * 0.5;
       const baseY = cy;
 
@@ -263,29 +265,28 @@ export class FingerCanvas {
       ctx.stroke();
     }
 
-    // --- 手指标签（在指尖上方） ---
-    const cw = this.canvas.width / this.dpr;
-    const labelSize = Math.max(11, cw * 0.016);
-    const labelY = tipY - 20 - (isActive ? 8 * pulse : 0);
-
-    // 标签背景
-    const labelText = fingerInfo.name.replace('左手', '').replace('右手', '');
-    const textWidth = ctx.measureText(labelText).width;
-
+    // --- 手指标签（仅在激活时显示） ---
     if (isActive) {
-      ctx.fillStyle = color + 'CC';
-    } else {
-      ctx.fillStyle = 'rgba(255,255,255,0.85)';
-    }
-    ctx.beginPath();
-    ctx.roundRect(tipX - textWidth / 2 - 8, labelY - labelSize / 2 - 4, textWidth + 16, labelSize + 8, 10);
-    ctx.fill();
+      const cw = this.canvas.width / this.dpr;
+      const labelSize = Math.max(11, cw * 0.016);
+      const labelY = tipY - 20 - 8 * pulse;
 
-    ctx.fillStyle = isActive ? '#FFFFFF' : '#555';
-    ctx.font = `bold ${labelSize}px "PingFang SC", "Microsoft YaHei", sans-serif`;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(labelText, tipX, labelY);
+      const labelText = fingerInfo.name.replace('左手', '').replace('右手', '');
+      const textWidth = ctx.measureText(labelText).width;
+
+      // 标签背景
+      ctx.fillStyle = color + 'CC';
+      ctx.beginPath();
+      ctx.roundRect(tipX - textWidth / 2 - 8, labelY - labelSize / 2 - 4, textWidth + 16, labelSize + 8, 10);
+      ctx.fill();
+
+      // 标签文字
+      ctx.fillStyle = '#FFFFFF';
+      ctx.font = `bold ${labelSize}px "PingFang SC", "Microsoft YaHei", sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(labelText, tipX, labelY);
+    }
   }
 
   public resize(): void {
