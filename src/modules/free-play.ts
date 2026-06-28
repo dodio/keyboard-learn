@@ -29,7 +29,6 @@ export class FamiliarPractice {
 
   // 计时
   private startTime: number = 0;
-  private pausedAt: number = 0;
   private accumulatedMs: number = 0;
   private timerInterval: ReturnType<typeof setInterval> | null = null;
 
@@ -51,6 +50,8 @@ export class FamiliarPractice {
     this.state.isPaused = false;
     this.startTimer();
     this.nextQuestion();
+    // 立即更新一次计时显示，确保 UI 从 00:00 开始
+    this.callbacks.onTimerUpdate('00:00.00');
   }
 
   /**
@@ -58,7 +59,6 @@ export class FamiliarPractice {
    */
   public pause(): void {
     if (this.state.isPaused || this.state.isFinished) return;
-    this.pausedAt = performance.now();
     this.state.isPaused = true;
     this.stopTimer();
     this.callbacks.onPauseChange(true);
@@ -69,11 +69,8 @@ export class FamiliarPractice {
    */
   public resume(): void {
     if (!this.state.isPaused || this.state.isFinished) return;
-    // 补偿暂停期间的时间
-    const pauseDuration = performance.now() - this.pausedAt;
-    this.startTime += pauseDuration;
-    this.pausedAt = 0;
     this.state.isPaused = false;
+    this.startTime = performance.now(); // 以当前时间为新基准
     this.startTimer();
     this.callbacks.onPauseChange(false);
   }
@@ -106,8 +103,14 @@ export class FamiliarPractice {
     return formatTime(this.getElapsedMs());
   }
 
+  /**
+   * 启动定时器（只清理旧 interval，不调用 stopTimer 破坏状态）
+   */
   private startTimer(): void {
-    this.stopTimer();
+    if (this.timerInterval !== null) {
+      clearInterval(this.timerInterval);
+      this.timerInterval = null;
+    }
     this.timerInterval = setInterval(() => {
       const elapsed = this.getElapsedMs();
       this.accumulatedMs = elapsed;
@@ -116,16 +119,19 @@ export class FamiliarPractice {
     }, 250);
   }
 
+  /**
+   * 停止定时器并结算累计时间
+   */
   private stopTimer(): void {
     if (this.timerInterval !== null) {
       clearInterval(this.timerInterval);
       this.timerInterval = null;
     }
-    // 结算当前段耗时
-    if (!this.state.isPaused) {
+    // 结算当前段时间（startTime > 0 防止 startTime 已被清零后重复结算）
+    if (!this.state.isPaused && this.startTime > 0) {
       this.accumulatedMs += performance.now() - this.startTime;
-      this.startTime = 0;
     }
+    this.startTime = 0;
   }
 
   /**

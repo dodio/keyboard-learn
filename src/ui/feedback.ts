@@ -75,7 +75,7 @@ export function showFinishScreen(
   const totalTime = formatDuration(state.elapsedMs);
   const unit = state.mode === 'word' ? '单词' : '字母';
   const count = state.mode === 'word' ? state.totalQuestions : state.totalQuestions;
-  const avgMs = count > 0 ? Math.round(state.elapsedMs / count) : 0;
+  const avgMs = count > 0 ? state.elapsedMs / count : 0;
   const avgTime = formatDuration(avgMs);
 
   container.innerHTML = `

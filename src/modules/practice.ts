@@ -52,21 +52,22 @@ export function createInitialState(mode: PracticeMode): PracticeState {
   };
 }
 
-/** 格式化毫秒为 MM:SS */
+/** 格式化毫秒为 MM:SS.ss（HUD 计时用） */
 export function formatTime(ms: number): string {
-  const totalSec = Math.floor(ms / 1000);
+  const totalSec = ms / 1000;
   const min = Math.floor(totalSec / 60);
   const sec = totalSec % 60;
-  return `${String(min).padStart(2, '0')}:${String(sec).padStart(2, '0')}`;
+  return `${String(min).padStart(2, '0')}:${sec.toFixed(2).padStart(5, '0')}`;
 }
 
-/** 格式化毫秒为可读时长（用于完成页） */
+/** 格式化毫秒为可读时长，保留 2 位小数（用于完成页） */
 export function formatDuration(ms: number): string {
-  const totalSec = Math.floor(ms / 1000);
+  const totalSec = ms / 1000;
   const min = Math.floor(totalSec / 60);
   const sec = totalSec % 60;
+  const secStr = sec.toFixed(2);
   if (min > 0) {
-    return `${min} 分 ${sec} 秒`;
+    return `${min} 分 ${secStr} 秒`;
   }
-  return `${sec} 秒`;
+  return `${secStr} 秒`;
 }

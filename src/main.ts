@@ -52,6 +52,12 @@ function handleMenuSelect(mode: MenuMode): void {
 // ==================== 通用单键练习（熟习/字母/数字） ====================
 
 function startKeyPractice(mode: PracticeMode, title: string): void {
+  // 先停止旧实例的计时器（防止残留 interval 串到新实例）
+  familiarPractice?.stop();
+  wordPractice?.stop();
+  familiarPractice = null;
+  wordPractice = null;
+
   currentMode = mode;
   const app = document.getElementById('app')!;
   app.innerHTML = getKeyPracticeHTML(title, mode);
@@ -109,7 +115,7 @@ function getKeyPracticeHTML(_title: string, mode: PracticeMode): string {
         <div class="practice-hud">
           <div class="hud-item">
             <span class="hud-label">用时</span>
-            <span class="hud-value timer" id="timer-display">00:00</span>
+            <span class="hud-value timer" id="timer-display">00:00.00</span>
           </div>
           <div class="hud-item">
             <span class="hud-label">分数</span>
@@ -214,6 +220,12 @@ function handleKeyFinish(state: { score: number; correctCount: number; totalQues
 // ==================== 英文单词打字练习 ====================
 
 function startWordPractice(): void {
+  // 先停止旧实例的计时器
+  familiarPractice?.stop();
+  wordPractice?.stop();
+  familiarPractice = null;
+  wordPractice = null;
+
   currentMode = 'word';
   const app = document.getElementById('app')!;
   app.innerHTML = getWordPracticeHTML();
@@ -269,7 +281,7 @@ function getWordPracticeHTML(): string {
         <div class="practice-hud">
           <div class="hud-item">
             <span class="hud-label">用时</span>
-            <span class="hud-value timer" id="timer-display">00:00</span>
+            <span class="hud-value timer" id="timer-display">00:00.00</span>
           </div>
           <div class="hud-item">
             <span class="hud-label">分数</span>
@@ -441,7 +453,8 @@ function handlePauseChange(isPaused: boolean): void {
 // ==================== 暂停快捷键 ====================
 
 function setupPauseHotkey(): void {
-  // 空格键暂停/恢复（当没有输入框聚焦时）
+  // 先移除旧监听器，防止重复叠加
+  document.removeEventListener('keydown', handlePauseKey);
   document.addEventListener('keydown', handlePauseKey);
 }
 
