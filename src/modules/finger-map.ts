@@ -3,7 +3,7 @@
  * 提供练习题目生成、手指判断等功能
  */
 
-import { FINGERS, KEYBOARD_ROWS, findKey, getNumberKeys, getAlphabetKeys } from './keyboard.js';
+import { FINGERS, KEYBOARD_ROWS, findKey, findKeyByCode, getNumberKeys, getAlphabetKeys } from './keyboard.js';
 import type { KeyInfo, FingerHand } from './keyboard.js';
 
 export interface PracticeQuestion {
@@ -15,20 +15,23 @@ export interface PracticeQuestion {
   hint: string;          // 提示文字
 }
 
-export type PracticeMode = 'familiar' | 'word' | 'alphabet' | 'number';
+export type PracticeMode = 'familiar' | 'word' | 'alphabet' | 'number' | 'full';
 
 /**
  * 生成随机练习题目（键盘熟习模式）
- * 从字母键中随机选取
+ * 从字母键 + 空格键中随机选取
  */
 export function generateFamiliarQuestion(usedKeys?: string[]): PracticeQuestion {
   const letters = getLetterKeys();
-  const available = usedKeys
-    ? letters.filter(k => !usedKeys.includes(k.key))
-    : letters;
+  const spaceKey = findKey(' ');
+  const pool = spaceKey ? [...letters, spaceKey] : letters;
 
-  const pool = available.length > 0 ? available : letters;
-  const keyInfo = pool[Math.floor(Math.random() * pool.length)];
+  const available = usedKeys
+    ? pool.filter(k => !usedKeys.includes(k.key))
+    : pool;
+
+  const pick = available.length > 0 ? available : pool;
+  const keyInfo = pick[Math.floor(Math.random() * pick.length)];
   return toQuestion(keyInfo);
 }
 
@@ -54,6 +57,34 @@ export function generateNumberQuestion(usedKeys?: string[]): PracticeQuestion {
   }
   const keyInfo = pool[Math.floor(Math.random() * pool.length)];
   return toQuestion(keyInfo);
+}
+
+/**
+ * 生成全键盘练习题目（含修饰键）
+ * 从所有主键盘区键位中随机选取
+ */
+export function generateFullQuestion(usedKeys?: string[]): PracticeQuestion {
+  const allKeys = getAllPracticeKeys();
+  const available = usedKeys
+    ? allKeys.filter(k => !usedKeys.includes(k.key))
+    : allKeys;
+
+  const pick = available.length > 0 ? available : allKeys;
+  const keyInfo = pick[Math.floor(Math.random() * pick.length)];
+  return toQuestion(keyInfo);
+}
+
+/**
+ * 获取全键盘练习所需的所有键位（去重）
+ */
+function getAllPracticeKeys(): KeyInfo[] {
+  const keys: KeyInfo[] = [];
+  for (const row of KEYBOARD_ROWS) {
+    for (const k of row) {
+      keys.push(k);
+    }
+  }
+  return keys;
 }
 
 /**
@@ -96,13 +127,15 @@ export function generateWordQuestion(): { word: string; questions: PracticeQuest
 function toQuestion(keyInfo: KeyInfo): PracticeQuestion {
   const finger = FINGERS[keyInfo.finger];
   const side = keyInfo.finger.startsWith('L') ? '左' : '右';
+  const displayLabel = keyInfo.key === ' ' ? 'Space' : keyInfo.label || keyInfo.key.toUpperCase();
+  const keyDisplay = keyInfo.key === ' ' ? '空格键' : `"${keyInfo.key.toUpperCase()}" 键`;
   return {
     key: keyInfo.key,
-    label: keyInfo.label,
+    label: displayLabel,
     finger: keyInfo.finger,
     fingerName: finger.name,
     fingerColor: finger.color,
-    hint: `请用${side}手${finger.name.replace(/^左|右/, '')}按下 "${keyInfo.key.toUpperCase()}" 键`,
+    hint: `请用${side}手${finger.name.replace(/^左|右/, '')}按下 ${keyDisplay}`,
   };
 }
 
@@ -137,6 +170,14 @@ export function getHomeRowKeys(): PracticeQuestion[] {
  */
 export function checkAnswer(question: PracticeQuestion, pressedKey: string): boolean {
   return question.key.toLowerCase() === pressedKey.toLowerCase();
+}
+
+/**
+ * 通过 code 判断按键是否正确（用于修饰键等特殊键）
+ */
+export function checkAnswerByCode(question: PracticeQuestion, code: string): boolean {
+  const keyInfo = findKeyByCode(code);
+  return keyInfo ? keyInfo.key === question.key : false;
 }
 
 /**

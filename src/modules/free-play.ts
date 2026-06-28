@@ -5,7 +5,7 @@
 
 import { createInitialState, formatTime } from './practice.js';
 import type { PracticeState } from './practice.js';
-import { generateFamiliarQuestion, generateAlphabetQuestion, generateNumberQuestion, checkAnswer } from './finger-map.js';
+import { generateFamiliarQuestion, generateAlphabetQuestion, generateNumberQuestion, generateFullQuestion, checkAnswer, checkAnswerByCode } from './finger-map.js';
 import type { PracticeQuestion, PracticeMode } from './finger-map.js';
 
 export interface FamiliarPracticeCallbacks {
@@ -131,10 +131,12 @@ export class FamiliarPractice {
   /**
    * 处理按键
    */
-  public handleKeyPress(key: string): boolean {
+  public handleKeyPress(key: string, code?: string): boolean {
     if (!this.currentQuestion || this.state.isFinished || this.state.isPaused) return false;
 
-    const isCorrect = checkAnswer(this.currentQuestion, key);
+    const isCorrect = code
+      ? checkAnswerByCode(this.currentQuestion, code)
+      : checkAnswer(this.currentQuestion, key);
     if (isCorrect) {
       this.state.correctCount++;
       this.state.streak++;
@@ -184,6 +186,8 @@ export class FamiliarPractice {
         return generateAlphabetQuestion(this.alphabetIndex++);
       case 'number':
         return generateNumberQuestion(this.usedKeys);
+      case 'full':
+        return generateFullQuestion(this.usedKeys);
       case 'familiar':
       default:
         return generateFamiliarQuestion(this.usedKeys);

@@ -2,7 +2,7 @@
  * 主菜单界面
  */
 
-export type MenuMode = 'familiar' | 'word' | 'alphabet' | 'number';
+export type MenuMode = 'familiar' | 'word' | 'alphabet' | 'number' | 'full';
 
 export function showMenu(onSelect: (mode: MenuMode) => void): void {
   const app = document.getElementById('app');
@@ -43,6 +43,13 @@ export function showMenu(onSelect: (mode: MenuMode) => void): void {
           <div class="card-icon">📝</div>
           <h2 class="card-title">英文单词打字</h2>
           <p class="card-desc">练习输入英文单词，提升打字速度</p>
+        </div>
+
+        <div class="menu-card" data-mode="full">
+          <div class="card-icon">🖥️</div>
+          <h2 class="card-title">全键盘练习</h2>
+          <p class="card-desc">包含 Ctrl/Shift/Alt/空格 等所有键</p>
+          <div class="card-badge">进阶挑战</div>
         </div>
       </div>
 

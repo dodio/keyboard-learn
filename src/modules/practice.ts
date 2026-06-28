@@ -30,6 +30,9 @@ export function createInitialState(mode: PracticeMode): PracticeState {
     case 'familiar':
       total = 20;
       break;
+    case 'full':
+      total = 30;   // 全键盘，30题
+      break;
     case 'word':
       total = 10;
       break;

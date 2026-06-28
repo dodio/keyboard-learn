@@ -13,7 +13,7 @@ import { updateProgress } from './modules/score.js';
 import type { PracticeQuestion, PracticeMode } from './modules/finger-map.js';
 import { showCorrectFeedback, showWrongFeedback, showStreakAnimation, showFinishScreen } from './ui/feedback.js';
 
-type AppMode = 'menu' | 'familiar' | 'word' | 'alphabet' | 'number';
+type AppMode = 'menu' | 'familiar' | 'word' | 'alphabet' | 'number' | 'full';
 
 let currentMode: AppMode = 'menu';
 let keyboardCanvas: KeyboardCanvas | null = null;
@@ -39,6 +39,9 @@ function handleMenuSelect(mode: MenuMode): void {
       break;
     case 'number':
       startKeyPractice('number', '数字键练习');
+      break;
+    case 'full':
+      startKeyPractice('full', '全键盘练习');
       break;
     case 'word':
       startWordPractice();
@@ -74,6 +77,7 @@ function startKeyPractice(mode: PracticeMode, title: string): void {
   // 绑定按钮事件
   app.querySelector('#btn-back')?.addEventListener('click', () => {
     familiarPractice?.stop();
+    teardownKeyboardListener();
     showMenu(handleMenuSelect);
   });
   app.querySelector('#btn-pause')?.addEventListener('click', () => {
@@ -90,7 +94,7 @@ function startKeyPractice(mode: PracticeMode, title: string): void {
 }
 
 function getKeyPracticeHTML(_title: string, mode: PracticeMode): string {
-  const total = mode === 'alphabet' ? 26 : mode === 'number' ? 20 : 20;
+  const total = mode === 'alphabet' ? 26 : mode === 'number' || mode === 'familiar' ? 20 : 30;
   return `
     <div class="practice-container">
       <div class="pause-overlay" id="pause-overlay" style="display:none;">
@@ -193,8 +197,17 @@ function handleKeyFinish(state: { score: number; correctCount: number; totalQues
   showFinishScreen(
     container,
     { ...state, mode },
-    () => startKeyPractice(mode, mode === 'familiar' ? '键盘熟习练习' : mode === 'alphabet' ? '按字母顺序练习' : '数字键练习'),
-    () => showMenu(handleMenuSelect)
+    () => {
+      const titles: Record<string, string> = {
+        familiar: '键盘熟习练习', alphabet: '按字母顺序练习',
+        number: '数字键练习', full: '全键盘练习',
+      };
+      startKeyPractice(mode, titles[mode] || '');
+    },
+    () => {
+      teardownKeyboardListener();
+      showMenu(handleMenuSelect);
+    }
   );
 }
 
@@ -227,6 +240,7 @@ function startWordPractice(): void {
   // 绑定按钮事件
   app.querySelector('#btn-back')?.addEventListener('click', () => {
     wordPractice?.stop();
+    teardownKeyboardListener();
     showMenu(handleMenuSelect);
   });
   app.querySelector('#btn-pause')?.addEventListener('click', () => {
@@ -382,7 +396,10 @@ function handleWordFinish(state: { score: number; correctCount: number; totalQue
     container,
     { ...state, mode: 'word' },
     () => startWordPractice(),
-    () => showMenu(handleMenuSelect)
+    () => {
+      teardownKeyboardListener();
+      showMenu(handleMenuSelect);
+    }
   );
 }
 
@@ -436,6 +453,12 @@ function handlePauseKey(e: KeyboardEvent): void {
   const practice = familiarPractice || wordPractice;
   if (!practice || practice.getState().isFinished) return;
 
+  // 如果当前题目是空格键，不作为暂停处理
+  if (familiarPractice) {
+    const q = familiarPractice.getCurrentQuestion();
+    if (q && (q.key === ' ' || q.key === 'Space')) return;
+  }
+
   e.preventDefault();
   practice.togglePause();
 }
@@ -445,16 +468,67 @@ function handlePauseKey(e: KeyboardEvent): void {
 function setupKeyboardListener(): void {
   // 移除旧监听器
   document.removeEventListener('keydown', handleKeyDown);
+  document.removeEventListener('keyup', handleKeyUp);
+  document.removeEventListener('contextmenu', handleContextMenu);
 
   // 延迟添加，确保 DOM 已更新
   setTimeout(() => {
     document.addEventListener('keydown', handleKeyDown);
+    document.addEventListener('keyup', handleKeyUp);
+    document.addEventListener('contextmenu', handleContextMenu);
   }, 100);
 }
 
+/** 全键盘模式是否处于活跃状态（未暂停、未结束） */
+function isFullModeActive(): boolean {
+  return currentMode === 'full'
+    && familiarPractice !== null
+    && !familiarPractice.getState().isFinished
+    && !familiarPractice.getState().isPaused;
+}
+
+/** 阻止右键菜单（全键盘模式） */
+function handleContextMenu(e: MouseEvent): void {
+  if (isFullModeActive()) {
+    e.preventDefault();
+  }
+}
+
+/** 阻止 keyup 的默认行为——部分键（Alt/Win）在 keyup 时触发系统功能 */
+function handleKeyUp(e: KeyboardEvent): void {
+  if (isFullModeActive()) {
+    e.preventDefault();
+  }
+}
+
 function handleKeyDown(e: KeyboardEvent): void {
-  // 空格键由暂停快捷键处理
-  if (e.key === ' ' || e.code === 'Space') return;
+  // ── 全键盘模式：优先拦截所有按键，屏蔽系统功能 ──
+  if (isFullModeActive()) {
+    e.preventDefault();
+    // 空格键：当前题目是空格 → 作答，否则不处理（留给暂停快捷键）
+    if (e.key === ' ' || e.code === 'Space') {
+      const q = familiarPractice!.getCurrentQuestion();
+      if (q && (q.key === ' ' || q.key === 'Space')) {
+        familiarPractice!.handleKeyPress('Space');
+      }
+      return;
+    }
+    familiarPractice!.handleKeyPress(e.key, e.code);
+    return;
+  }
+
+  // 空格键特殊处理：如果当前题目是空格键 → 作为输入，否则由暂停快捷键处理
+  if (e.key === ' ' || e.code === 'Space') {
+    if (familiarPractice && !familiarPractice.getState().isFinished && !familiarPractice.getState().isPaused) {
+      const q = familiarPractice.getCurrentQuestion();
+      if (q && (q.key === ' ' || q.key === 'Space')) {
+        e.preventDefault();
+        familiarPractice.handleKeyPress('Space');
+        return;
+      }
+    }
+    return;
+  }
 
   if (currentMode === 'word' && wordPractice) {
     const activeEl = document.activeElement;
@@ -467,6 +541,14 @@ function handleKeyDown(e: KeyboardEvent): void {
     e.preventDefault();
     familiarPractice.handleKeyPress(e.key);
   }
+}
+
+/** 清理所有键盘/鼠标事件监听（返回菜单时调用） */
+function teardownKeyboardListener(): void {
+  document.removeEventListener('keydown', handleKeyDown);
+  document.removeEventListener('keyup', handleKeyUp);
+  document.removeEventListener('contextmenu', handleContextMenu);
+  document.removeEventListener('keydown', handlePauseKey);
 }
 
 // ==================== 启动 ====================

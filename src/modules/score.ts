@@ -12,6 +12,7 @@ export interface ProgressData {
   wordBestScore: number;
   alphabetBestScore: number;
   numberBestScore: number;
+  fullBestScore: number;
   stars: number;        // 总星星数
   practiceCount: number; // 练习次数
   lastPracticeDate: string;
@@ -32,6 +33,7 @@ function getDefaultProgress(): ProgressData {
     wordBestScore: 0,
     alphabetBestScore: 0,
     numberBestScore: 0,
+    fullBestScore: 0,
     stars: 0,
     practiceCount: 0,
     lastPracticeDate: '',
@@ -68,7 +70,7 @@ export function saveProgress(progress: ProgressData): void {
  * 更新进度（练习结束后调用）
  */
 export function updateProgress(
-  mode: 'familiar' | 'word' | 'alphabet' | 'number',
+  mode: 'familiar' | 'word' | 'alphabet' | 'number' | 'full',
   score: number,
   correct: number,
   wrong: number,
@@ -90,6 +92,8 @@ export function updateProgress(
     progress.alphabetBestScore = Math.max(progress.alphabetBestScore, score);
   } else if (mode === 'number') {
     progress.numberBestScore = Math.max(progress.numberBestScore, score);
+  } else if (mode === 'full') {
+    progress.fullBestScore = Math.max(progress.fullBestScore, score);
   }
 
   // 计算星星（每100分一颗星）
