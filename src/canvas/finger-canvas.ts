@@ -154,54 +154,33 @@ export class FingerCanvas {
     const result: { baseX: number; baseY: number; tipX: number; tipY: number }[] = [];
 
     // 手指在掌心上的分布
-    // L1/R1 是拇指，位置特殊；其余四指均匀分布
     const spread = handHalfWidth * 2 * 0.85; // 手指分布宽度
 
     for (let i = 0; i < 5; i++) {
-      // 拇指(L1/R1, index 0) 和其他四指(index 1-4) 在不同位置
-      const isThumb = i === 0;
+      // 左手: ['L5','L4','L3','L2','L1'] → 拇指(i=4)
+      // 右手: ['R1','R2','R3','R4','R5'] → 拇指(i=0)
+      const isThumb = side === 'left' ? i === 4 : i === 0;
 
-      // 其他四指归一化坐标: -1.0, -0.55, -0.1, 0.35, 0.8 → 改为均匀分布
+      // 手指 X 位置归一化
       const normalizedPositions = [-0.95, -0.60, -0.15, 0.35, 0.85];
 
-      if (side === 'left') {
-        // 左手手指从左到右：小指 L5→无名指 L4→中指 L3→食指 L2→拇指 L1
-        // fingerOrder: ['L5','L4','L3','L2','L1']
-        // 对应 normalized: [-0.95, -0.60, -0.15, 0.35, 0.85]
-        const t = normalizedPositions[i];
-        const baseX = cx + t * spread * 0.5;
-        const baseY = cy;
+      const t = normalizedPositions[i];
+      const baseX = cx + t * spread * 0.5;
+      const baseY = cy;
 
-        // 拇指向下且向外伸出
-        let tipX: number, tipY: number;
-        if (isThumb) {
-          tipX = baseX + (side === 'left' ? -handHalfWidth * 0.8 : handHalfWidth * 0.8);
-          tipY = baseY + fingerLength * 0.6;
-        } else {
-          tipX = baseX;
-          tipY = baseY - fingerLength * (1.0 - Math.abs(t) * 0.15);
-        }
-
-        result.push({ baseX, baseY, tipX, tipY });
+      let tipX: number, tipY: number;
+      if (isThumb) {
+        // 拇指：从手掌向下伸展，同时向中心（空格键方向）微偏
+        // 左手拇指向右下偏，右手拇指向左下偏
+        const towardCenter = side === 'left' ? handHalfWidth * 0.5 : -handHalfWidth * 0.5;
+        tipX = baseX + towardCenter;
+        tipY = baseY + fingerLength * 0.65;
       } else {
-        // 右手手指从左到右：拇指 R1→食指 R2→中指 R3→无名指 R4→小指 R5
-        // fingerOrder: ['R1','R2','R3','R4','R5']
-        // 对应 normalized: [-0.85, -0.35, 0.15, 0.60, 0.95]
-        const t = normalizedPositions[i];
-        const baseX = cx + t * spread * 0.5;
-        const baseY = cy;
-
-        let tipX: number, tipY: number;
-        if (isThumb) {
-          tipX = baseX + handHalfWidth * 0.8;
-          tipY = baseY + fingerLength * 0.6;
-        } else {
-          tipX = baseX;
-          tipY = baseY - fingerLength * (1.0 - Math.abs(t) * 0.15);
-        }
-
-        result.push({ baseX, baseY, tipX, tipY });
+        tipX = baseX;
+        tipY = baseY - fingerLength * (1.0 - Math.abs(t) * 0.15);
       }
+
+      result.push({ baseX, baseY, tipX, tipY });
     }
 
     return result;
