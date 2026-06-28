@@ -159,6 +159,31 @@ body {
   color: #888;
 }
 
+.github-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #666;
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 600;
+  padding: 6px 16px;
+  border-radius: 20px;
+  background: #f0f0f0;
+  transition: all 0.25s;
+}
+
+.github-link:hover {
+  color: #24292f;
+  background: #e0e0e0;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.github-icon {
+  flex-shrink: 0;
+}
+
 .stars-display {
   display: flex;
   align-items: center;
