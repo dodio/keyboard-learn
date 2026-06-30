@@ -111,8 +111,23 @@ export function showFinishScreen(
     </div>
   `;
 
-  container.querySelector('#btn-restart')?.addEventListener('click', onRestart);
-  container.querySelector('#btn-back')?.addEventListener('click', onBack);
+  const wrap = (fn: () => void) => () => {
+    document.removeEventListener('keydown', handleKey);
+    fn();
+  };
+
+  container.querySelector('#btn-restart')?.addEventListener('click', wrap(onRestart));
+  container.querySelector('#btn-back')?.addEventListener('click', wrap(onBack));
+
+  // 键盘快捷键：Enter 再来一次，Escape 返回
+  const handleKey = (e: KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      wrap(onRestart)();
+    } else if (e.key === 'Escape') {
+      wrap(onBack)();
+    }
+  };
+  document.addEventListener('keydown', handleKey);
 }
 
 function getRating(score: number, total: number): number {
